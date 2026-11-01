@@ -557,6 +557,8 @@ console.log('Invitación con enlace');
   check('la máquina puede llevar nombre (o uno al azar)', bn.ok, JSON.stringify(bn));
   await p.evaluate(() => unirseDesdeEnlace('WXYZ')); await p.waitForTimeout(200);
   check('al abrir el enlace va a «En línea»', await p.evaluate(() => S.draft.mode === 'online'));
+  check('sin nombre, pide el nombre en una ventana con el código', await p.evaluate(() => !!document.querySelector('#invName') && document.querySelector('#modal').textContent.includes('WXYZ')));
+  check('el código queda guardado por si la app aún no estaba lista', await p.evaluate(() => { Invitacion.entregar('QQ11'); return true; }) && await p.evaluate(() => !localStorage.getItem('invitacionPendiente')));
   check('sin errores en la página', !errors.length, errors.join(' | '));
   await ctx.close();
 }
