@@ -253,10 +253,14 @@ main:has(.gm){padding-top:8px}
 <script src="juego.js"></script>
 <script>window.APP_ID = 'parchis';</script>
 <script src="i18n-en.js"></script>
+<script src="i18n-fr.js"></script>
+<script src="i18n-de.js"></script>
+<script src="i18n-it.js"></script>
 <script src="idioma.js"></script>
 <script src="masjuegos.js"></script>
 <script src="turno.js"></script>
 <script src="contador.js"></script>
+<script src="invitacion.js"></script>
 <script>
 'use strict';
 /* ================= Estado y persistencia ================= */
@@ -320,7 +324,7 @@ function openThemes() {
   AvisoTurno.enlazar();
 }
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const REPO = 'csuarezsm/Parchis';
 const MAX_ARCHIVE = 500;
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -335,7 +339,7 @@ function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); saveWarned = false; }
   catch (e) { if (!saveWarned) { saveWarned = true; setTimeout(() => toast('⚠️ No se pudo guardar. Exporta una copia y borra partidas antiguas.'), 0); } }
 }
-const DEF_DRAFT = () => ({ mode: 'ai', ai: { name: '', color: 0, rivals: 3, level: 2 }, local: { level: 2, seats: [{ t: 'p', name: '' }, { t: 'p', name: '' }, { t: 'm', name: '' }, { t: 'm', name: '' }] } });
+const DEF_DRAFT = () => ({ mode: 'ai', ai: { name: '', color: 0, rivals: 3, level: 2, bots: ['', '', ''] }, local: { level: 2, seats: [{ t: 'p', name: '' }, { t: 'p', name: '' }, { t: 'm', name: '' }, { t: 'm', name: '' }] } });
 let S = load() || {};
 S.game = S.game || null;
 S.draft = Object.assign(DEF_DRAFT(), S.draft || {});

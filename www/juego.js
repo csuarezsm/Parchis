@@ -11,6 +11,7 @@ const COL = [
 const LEVELS = { 1: { name: 'Fácil', desc: 'Mueve casi al azar. Para jugar con calma o con los peques.' },
   2: { name: 'Normal', desc: 'Come cuando puede y protege sus fichas.' },
   3: { name: 'Difícil', desc: 'Hace barreras, calcula el peligro y no regala nada.' } };
+const BOT_IDEAS = ['Pancho', 'Chano', 'Candelaria', 'Tomasa', 'Juanillo', 'Nieves', 'Pepito', 'Carmela', 'Domingo', 'Fefa', 'Agustín', 'Chona', 'Ramón', 'Pino', 'Chicho', 'Luci'];
 const levelLabel = l => '🤖 ' + (LEVELS[l] ? LEVELS[l].name : 'Máquina');
 const SPEEDS = { normal: { roll: 650, move: 650, step: 115 }, rapida: { roll: 320, move: 330, step: 60 } };
 const speed = () => SPEEDS[S.speed] || SPEEDS.normal;
@@ -280,6 +281,8 @@ function renderSetup() {
         ${rosterChips(a.name, 'pick')}
         <h2 style="margin-top:6px">Tu color</h2>${colorBtns(a.color, 'col')}</div>
       <div class="sec"><h2>Rivales</h2><div class="kinds">${[1, 2, 3].map(n => `<button data-riv="${n}" class="${a.rivals === n ? 'on' : ''}">${n} rival${n > 1 ? 'es' : ''}</button>`).join('')}</div>
+        ${RIVALS[a.rivals - 1].map((k, j) => { const c = (a.color + k) % 4; return `<div class="lseat">${dot(c)}<b class="cn">${COL[c].n}</b><input type="text" maxlength="16" data-bot="${j}" placeholder="${COL[c].n}" value="${esc((a.bots || [])[j] || '')}"><button class="closebtn" data-botdice="${j}" aria-label="Nombre al azar">🎲</button></div>`; }).join('')}
+        <div class="mut" style="margin-top:4px">Ponle nombre a la máquina o pulsa 🎲. Si lo dejas vacío, se llama por su color.</div>
         <h2 style="margin-top:14px">Nivel de la máquina</h2>${levelBtns(a.level, 'lv')}</div>`;
   } else {
     const L = D.local;
@@ -300,6 +303,12 @@ function renderSetup() {
     on('[data-col]', b => b.onclick = () => { syncDraft(); D.ai.color = +b.dataset.col; render(); });
     on('[data-riv]', b => b.onclick = () => { syncDraft(); D.ai.rivals = +b.dataset.riv; render(); });
     on('[data-lv]', b => b.onclick = () => { syncDraft(); D.ai.level = +b.dataset.lv; render(); });
+    on('[data-botdice]', b => b.onclick = () => {
+      syncDraft(); const bots = D.ai.bots;
+      const used = new Set(bots.map(nkey).concat(nkey(D.ai.name)));
+      const free = BOT_IDEAS.filter(n => !used.has(nkey(n)));
+      bots[+b.dataset.botdice] = free[Math.floor(Math.random() * free.length)] || ''; save(); render();
+    });
   } else {
     on('[data-st]', b => b.onclick = () => { syncDraft(); const [c, t] = b.dataset.st.split(':'); D.local.seats[+c].t = t; render(); });
     on('[data-nm]', el => el.onchange = () => { D.local.seats[+el.dataset.nm].name = cleanName(el.value); save(); });
@@ -312,6 +321,8 @@ function renderSetup() {
 function syncDraft() {
   const D = S.draft;
   const n = $('#aiName'); if (n && D.mode === 'ai') D.ai.name = cleanName(n.value);
+  if (!Array.isArray(D.ai.bots)) D.ai.bots = ['', '', ''];
+  document.querySelectorAll('[data-bot]').forEach(el => { D.ai.bots[+el.dataset.bot] = cleanName(el.value).replace(/^🤖\s*/, ''); });
   document.querySelectorAll('[data-nm]').forEach(el => { D.local.seats[+el.dataset.nm].name = cleanName(el.value); });
   save();
 }
@@ -325,7 +336,8 @@ function startFromDraft() {
   if (D.mode === 'ai') {
     const me = D.ai.color, name = canonName(D.ai.name, 'Tú');
     remember(name);
-    seats = [{ c: me, name, ai: false, me: true }].concat(RIVALS[D.ai.rivals - 1].map(k => ({ c: (me + k) % 4, name: COL[(me + k) % 4].n, ai: true, level: D.ai.level })));
+    const bots = D.ai.bots || [];
+    seats = [{ c: me, name, ai: false, me: true }].concat(RIVALS[D.ai.rivals - 1].map((k, j) => ({ c: (me + k) % 4, name: cleanName(bots[j] || '') || COL[(me + k) % 4].n, ai: true, level: D.ai.level })));
   } else {
     seats = D.local.seats.map((s, c) => s.t === 'x' ? null : s.t === 'm' ? { c, name: COL[c].n, ai: true, level: D.local.level } : { c, name: canonName(s.name, 'Jugador ' + (c + 1)), ai: false }).filter(Boolean);
     if (seats.length < 2) { toast('Hacen falta al menos dos jugadores'); return; }
@@ -379,6 +391,7 @@ function statusLine(vm, mine, who) {
 function renderGame() {
   const g = S.game, st = g.st, vm = gameVm(g);
   const seat = seatOf(g, st.turno), mine = seat && !seat.ai && st.fase !== 'fin';
+  AvisoTurno.local(mine && st.fase === 'tirar', g.id + ':' + st.n + ':' + st.turno);   // aviso de que te toca (se quita en ajustes)
   const multiHuman = g.seats.filter(s => !s.ai).length > 1;
   $('#subtitle').textContent = g.mode === 'ai' ? 'Contra la máquina · ' + LEVELS[(g.seats.find(s => s.ai) || {}).level || 2].name : 'Entre amigos';
   const S1 = statusLine(vm, mine, multiHuman || !seat || !seat.me ? null : 'Te toca');
@@ -676,8 +689,7 @@ function onRenderEspera(s) {
   $('#onLeave').onclick = () => confirmBox('Salir', 'Saldrás de esta partida.', 'Salir', () => onEnviar({ t: 'salir' }));
 }
 async function onInvitar(codigo) {
-  const enlace = isPlay() ? '🤖 Android: ' + PLAY_URL + '\n🍏 iPhone: ' + WEB_URL : DESCARGA_URL;
-  const text = `🎲 ¡Juega al parchís conmigo!\n\nAbre la app Parchís → En línea → Unirse y pon el código:\n\n*${codigo}*\n\n¿No tienes la app? Es gratis, para Android e iPhone:\n${enlace}`;
+  const text = Invitacion.texto('🎲', 'Parchís', codigo);
   try {
     if (isNative()) { await window.Capacitor.Plugins.Share.share({ title: 'Partida de parchís', text, dialogTitle: 'Invitar' }); return; }
     if (navigator.share) { await navigator.share({ title: 'Partida de parchís', text }); return; }
@@ -731,5 +743,31 @@ function leaveOnline() {
   if (s.estado === 'jugando') confirmBox('Abandonar la partida', 'Tu silla la ocupará la máquina hasta el final.', 'Abandonar', () => onEnviar({ t: 'salir' }));
   else onEnviar({ t: 'salir' });
 }
+/* ---------- Invitación con enlace: entrar directamente en la sala ---------- */
+function onUnirsePendiente(t0) {
+  if (!ON.unirse) return;
+  if (ON.estado === 'conectado' && ON.listo) { const c = ON.unirse; ON.unirse = null; onEnviar({ t: 'unirse', codigo: c, nombre: onNombre() }); return; }
+  if (Date.now() - t0 > 20000) { ON.unirse = null; toast('Sin conexión con el servidor. Prueba otra vez en un momento.'); return; }
+  setTimeout(() => onUnirsePendiente(t0), 300);
+}
+window.unirseDesdeEnlace = function (codigo) {
+  const go = () => {
+    S.draft.mode = 'online'; save();
+    if (ON.sala && ON.sala.codigo === codigo) { render(); return; }
+    if (!onNombre()) {
+      render();
+      setTimeout(() => { const i = $('#onCode'); if (i) i.value = codigo; const n = $('#onName'); if (n) n.focus(); toast('Escribe tu nombre y pulsa Unirse'); }, 80);
+      return;
+    }
+    ON.unirse = codigo; onConectar(); render(); toast('Entrando en la partida ' + codigo + '…');
+    onUnirsePendiente(Date.now());
+  };
+  if (ON.sala && ON.sala.codigo !== codigo && ON.sala.estado === 'jugando') { toast('Antes sal de la partida en línea en la que estás'); return; }
+  if (S.game && S.game.st.fase === 'fin') S.game = null;
+  if (S.game) confirmBox('Partida en línea', 'Tienes una partida empezada en este móvil. Se abandonará y entrarás en la partida a la que te invitan.', 'Entrar', () => { clearTimeout(AIT); BUSY = false; S.game = null; go(); });
+  else go();
+};
+setTimeout(() => { try { Invitacion.listo(); } catch (e) {} }, 0);
+
 // Al abrir la app: si estabas en una partida en línea, vuelve a ella
 document.addEventListener('DOMContentLoaded', () => { try { if (S.online && S.online.enSala) onConectar(); } catch (e) {} });

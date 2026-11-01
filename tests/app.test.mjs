@@ -191,7 +191,7 @@ console.log('Idioma inglés');
   await p.goto(URL_APP); await p.waitForTimeout(400);
   check('por defecto (pruebas) en español', await p.evaluate(() => Idioma.lang() === 'es' && !document.body.textContent.includes('Start game')));
   await p.click('#menuBtn'); await p.click('#mLang');
-  check('el menú tiene el selector de idioma', await p.evaluate(() => document.querySelectorAll('[data-lang]').length === 2));
+  check('el menú tiene el selector de idioma', await p.evaluate(() => document.querySelectorAll('[data-lang]').length === 5));
   await Promise.all([p.waitForNavigation(), p.click('[data-lang="en"]')]); await p.waitForTimeout(500);
   check('al elegir inglés, la app se ve en inglés', await p.evaluate(() => Idioma.lang() === 'en' && document.body.textContent.includes('Start game') && document.body.textContent.includes('Your colour') && document.documentElement.lang === 'en'));
   await p.click('#menuBtn');
@@ -204,6 +204,14 @@ console.log('Idioma inglés');
   await p.click('#menuBtn'); await p.click('#mLang');
   await Promise.all([p.waitForNavigation(), p.click('[data-lang="es"]')]); await p.waitForTimeout(400);
   check('y se vuelve al español', await p.evaluate(() => Idioma.lang() === 'es' && !document.body.textContent.includes('Start game')));
+
+  for (const [l, t] of [['fr', 'Plus de jeux'], ['de', 'Mehr Spiele'], ['it', 'Altri giochi']]) {
+    await p.evaluate(l => localStorage.setItem('idioma', l), l); await p.reload(); await p.waitForTimeout(400);
+    await p.click('#menuBtn');
+    check(`en ${l}: la app se ve en ese idioma`, await p.evaluate(([l, t]) => document.documentElement.lang === l && document.querySelector('#modal').textContent.includes(t), [l, t]));
+    await p.evaluate(() => closeModal());
+  }
+  await p.evaluate(() => localStorage.setItem('idioma', 'es')); await p.reload(); await p.waitForTimeout(300);
   check('sin errores en la página', !errors.length, errors.join(' | '));
   await ctx.close();
 }
@@ -397,8 +405,8 @@ console.log('Jugar en línea (con el servidor común de juegos)');
     check('crear sala: aparece el código', await waitFor(a, () => ON.sala && /^[A-Z2-9]{4}$/.test(ON.sala.codigo) && !!document.querySelector('.on-code')));
     const code = await a.evaluate(() => ON.sala.codigo);
     await waitFor(b, () => ON.estado === 'conectado');
-    await b.fill('#onCode', code.toLowerCase()); await b.click('#onJoin');
-    check('el otro entra con el código', await waitFor(a, () => ON.sala.asientos.length === 2) && await waitFor(b, () => ON.sala && ON.sala.codigo === document.querySelector('.on-code').textContent));
+    await b.goto(URL_APP + '?unirse=' + code.toLowerCase());   // el enlace de la invitación
+    check('el otro entra tocando el enlace de la invitación', await waitFor(a, () => ON.sala.asientos.length === 2) && await waitFor(b, () => ON.sala && ON.sala.codigo === document.querySelector('.on-code').textContent));
     await a.click('#onBot');
     check('se añade a la máquina', await waitFor(a, () => ON.sala.asientos.length === 3 && ON.sala.asientos[2].bot));
     check('solo quien crea puede empezar', !(await b.$('#onStart')) && !!(await a.$('#onStart')));
@@ -535,6 +543,22 @@ console.log('Pantallas: vertical, horizontal y tablet');
     check(`${name}: sin errores`, !errors.length, errors.join(' | '));
     await ctx.close();
   }
+}
+
+console.log('Invitación con enlace');
+{
+  const { p, ctx, errors } = await fresh(null, null, 'ws://127.0.0.1:9/ws');
+  await p.waitForTimeout(300);
+  check('el enlace de la invitación lleva a la página del juego', await p.evaluate(() => Invitacion.enlace('ABCD') === 'https://csuarezsm.github.io/Parchis/unirse.html?c=ABCD'));
+  check('el código se lee del enlace de la app y de la web', await p.evaluate(() => Invitacion.deUrl('itcparchis://unirse/ab12') === 'AB12' && Invitacion.deUrl('https://x.y/app/?unirse=wxyz') === 'WXYZ' && Invitacion.deUrl('https://x.y/app/') === null));
+  check('el mensaje lleva el enlace y el código', await p.evaluate(() => { const t = Invitacion.texto('🎲', 'Juego', 'QWER'); return t.includes('unirse.html?c=QWER') && t.includes('*QWER*'); }));
+  check('aviso de turno contra la máquina: suena al volver tu turno, no al seguir tú', await p.evaluate(() => { const n = AvisoTurno.veces; const a = AvisoTurno.local(true, 'x1'); const b = AvisoTurno.local(false, 'x1'); const c = AvisoTurno.local(true, 'x2'); const d = AvisoTurno.local(true, 'x2'); return !a && !b && c && !d && AvisoTurno.veces === n + 1; }));
+  const bn = await p.evaluate(() => { S.draft.mode = 'ai'; S.draft.ai.rivals = 2; render(); document.querySelector('[data-botdice="0"]').click(); const n = S.draft.ai.bots[0]; document.querySelector('[data-bot="1"]').value = 'Pepa'; syncDraft(); startFromDraft(); const r = S.game.seats.filter(x => x.ai).map(x => x.name); S.game = null; return { n, r, ok: BOT_IDEAS.includes(n) && r.includes(n) && r.includes('Pepa') }; });
+  check('la máquina puede llevar nombre (o uno al azar)', bn.ok, JSON.stringify(bn));
+  await p.evaluate(() => unirseDesdeEnlace('WXYZ')); await p.waitForTimeout(200);
+  check('al abrir el enlace va a «En línea»', await p.evaluate(() => S.draft.mode === 'online'));
+  check('sin errores en la página', !errors.length, errors.join(' | '));
+  await ctx.close();
 }
 
 await browser.close();
