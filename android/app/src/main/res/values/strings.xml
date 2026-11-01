@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Parchís</string>
+    <string name="title_activity_main">Parchís</string>
+    <string name="package_name">com.itcanarias.parchis</string>
+    <string name="custom_url_scheme">com.itcanarias.parchis</string>
+</resources>

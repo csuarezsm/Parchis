@@ -1,0 +1,9 @@
+{
+  "appId": "com.itcanarias.parchis",
+  "appName": "Parchís",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#22090e",
+    "adjustMarginsForEdgeToEdge": "auto"
+  }
+}
