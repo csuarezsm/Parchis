@@ -257,7 +257,7 @@ function resultsHtml(vm) {
 
 /* ================= Pantalla de inicio ================= */
 function modeTabs() {
-  const ms = [['ai', '🤖 Máquina'], ['local', '👥 Amigos']].concat(ONLINE_URL ? [['online', '🌐 En línea']] : []);
+  const ms = [['ai', '🤖 Contra la máquina'], ['local', '👥 Amigos']].concat(ONLINE_URL ? [['online', '🌐 En línea']] : []);
   return `<div class="kinds modes">${ms.map(([k, l]) => `<button data-mode="${k}" class="${S.draft.mode === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
 }
 function bindModeTabs() { document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { syncDraft(); S.draft.mode = b.dataset.mode; render(); }); }

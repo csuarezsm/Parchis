@@ -2,7 +2,7 @@
 
 El parchís español de siempre para Android e iPhone, de 2 a 4 jugadores: contra la máquina, con amigos en el mismo móvil y en línea.
 App Capacitor + web (`www/`). Todos los datos se guardan en el móvil; solo el juego en línea usa el servidor de juegos (nombre y jugadas, sin guardarlos).
-Paquete: `com.itcanarias.parchis` · versión 1.2.2
+Paquete: `com.itcanarias.parchis` · versión 1.2.3
 
 **iPhone y navegadores**: la misma app se publica como versión web instalable en https://csuarezsm.github.io/Parchis/app/ (GitHub Pages, carpeta `docs/app`, copia de `www/`). En Safari: Compartir → «Añadir a pantalla de inicio». Tras cambiar `www/`, ejecuta `npm run web` antes del commit: las pruebas y el workflow comprueban que `docs/app` está al día. La página de descarga (https://csuarezsm.github.io/Parchis/) ofrece Android e iPhone, y el mensaje de «Compartir la app» enlaza a ella.
 
