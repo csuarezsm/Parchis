@@ -3,7 +3,7 @@
   "appName": "Parchís",
   "webDir": "www",
   "android": {
-    "backgroundColor": "#22090e",
+    "backgroundColor": "#1c130b",
     "adjustMarginsForEdgeToEdge": "auto"
   }
 }
